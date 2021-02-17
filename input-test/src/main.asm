@@ -53,8 +53,8 @@ ENDR
     xor a
     ld [rLCDC], a
 
-;; Change strings
-    ld hl, $9800 ; This will print the string at the top-left corner of the screen
+    ;; Change strings
+    ld hl, $9800
     ld de, NoButtonsStr
     call strcpy
 
@@ -72,7 +72,7 @@ ENDR
     ld [rLCDC], a
 
     jr .restart
-
+  
 wait:
     ld a, $FF
 .start_loop
