@@ -13,7 +13,7 @@ ENDR
 waitVRAM: MACRO
     ld  a,[rSTAT]
     and STATF_BUSY
-    jr  nz,@-4     ; Jumps up 4 bytes in the code (two lines in this case)
+    jr  nz,@-4
 ENDM
 
 SECTION "Game code", ROM0
@@ -38,21 +38,50 @@ Start:
     ; Shut sound down
     ld [rNR52], a
 
+    ld a, %00100000
+    ld [$FF00], a
+
     call StartLCD
 
 MainLoop:
-    ld a, [$FF00]
-    cp $CF
-    jr nz, .someButtonPressed
+    ld a, [rP1]
+    and P1F_0
+    jr z, .rightButtonPressed
 
+    ld a, [rP1]
+    and P1F_1
+    jr z, .leftButtonPressed
+
+    ld a, [rP1]
+    and P1F_2
+    jr z, .upButtonPressed
+
+    ld a, [rP1]
+    and P1F_3
+    jr z, .downButtonPressed
+
+.noButtonPressed
     ; No button is pressed
     ld de, NoButtonsStr
-    ld hl, $9800
-    call strcpy
-    jr MainLoop
+    jr .endMainLoop
 
-.someButtonPressed:
-    ld de, SomeButtonsStr
+.leftButtonPressed:
+    ld de, LeftButtonStr
+    jr .endMainLoop
+
+.rightButtonPressed:
+    ld de, RightButtonStr
+    jr .endMainLoop
+
+.upButtonPressed:
+    ld de, UpButtonStr
+    jr .endMainLoop
+
+.downButtonPressed:
+    ld de, DownButtonStr
+    jr .endMainLoop
+
+.endMainLoop
     ld hl, $9800
     call strcpy
     jr MainLoop
@@ -84,7 +113,7 @@ memcpy:
     ret
 
 ; Copy a NULL-terminated string to VRAM
-; @param de - Source address
+; @param de - Source addressppp
 ; @param hl - Destination address
 strcpy:
     waitVRAM
@@ -126,6 +155,12 @@ SECTION "strings", ROM0
 
 NoButtonsStr:
     db "No button is pressed", 0
-SomeButtonsStr:
-    db "Something is pressed", 0
+LeftButtonStr:
+    db "Left is pressed     ", 0
+RightButtonStr:
+    db "Right is pressed    ", 0
+UpButtonStr:
+    db "Up is pressed       ", 0
+DownButtonStr:
+    db "Down is pressed     ", 0
 
