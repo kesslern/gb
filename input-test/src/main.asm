@@ -1,8 +1,7 @@
 INCLUDE "hardware.inc"
 
 SECTION "Header", ROM0[$100]
-EntryPoint: ; This is where execution begins
-    nop
+    di
     jp Start
 
 ; Space for header
@@ -10,13 +9,16 @@ REPT $150 - $104
     db 0
 ENDR
 
+; Wait for VRAM to be safe to write to
+waitVRAM: MACRO
+    ld  a,[rSTAT]
+    and STATF_BUSY
+    jr  nz,@-4     ; Jumps up 4 bytes in the code (two lines in this case)
+ENDM
+
 SECTION "Game code", ROM0
 Start:
-    ; Turn off the LCD
-    call waitVBlank
-
-    xor a ; ld a, 0 ; We only need to reset a value with bit 7 reset, but 0 does the job
-    ld [rLCDC], a ; We will have to write to LCDC again later, so it's not a bother, really.
+    call StopLCD
 
     ; Load font
     ld hl, $9000
@@ -24,61 +26,43 @@ Start:
     ld bc, FontTilesEnd - FontTiles
     call memcpy
 
-    ; Init display registers
+    ; Init palette
     ld a, %11100100
     ld [rBGP], a
 
-    xor a ; ld a, 0
+    ; Init scroll registers
+    xor a
     ld [rSCY], a
     ld [rSCX], a
 
     ; Shut sound down
     ld [rNR52], a
 
-.restart
-    ld hl, $9800
-    ld de, StartingStr
-    call strcpy
+    call StartLCD
 
-    ; Turn screen on, display background
-    ld a, %10000001
-    ld [rLCDC], a
+MainLoop:
+    ld a, [$FF00]
+    cp $CF
+    jr nz, .someButtonPressed
 
-REPT 10
-    call wait
-ENDR
-    call waitVBlank
-
-    ; Turn screen off
-    xor a
-    ld [rLCDC], a
-
-    ;; Change strings
-    ld hl, $9800
+    ; No button is pressed
     ld de, NoButtonsStr
+    ld hl, $9800
     call strcpy
+    jr MainLoop
 
-    ; Turn screen on, display background
-    ld a, %10000001
-    ld [rLCDC], a
+.someButtonPressed:
+    ld de, SomeButtonsStr
+    ld hl, $9800
+    call strcpy
+    jr MainLoop
 
-REPT 10
-    call wait
-ENDR
-    call waitVBlank
-
-    ; Turn screen off
-    xor a
-    ld [rLCDC], a
-
-    jr .restart
-  
 wait:
     ld a, $FF
-.start_loop
+.start_loop:
     ld b, a
     ld a, $FF
-.loop
+.loop:
     dec a
     jr nz, .loop
     ld a, b
@@ -86,46 +70,51 @@ wait:
     jr nz, .start_loop
     ret
 
-waitVBlank:
-    ld a, [rLY]
-    cp 144 ; Check if the LCD is past VBlank
-    jr c, waitVBlank
-    ret
-
 ; @param bc - Number of bytes to copy 
 ; @param de - Source address
 ; @param hl - Destination address
 memcpy:
-    ld a, [de] ; Grab 1 byte from the source
+    ld a, [de]  ; Grab 1 byte from the source
     ld [hli], a ; Place it at the destination, incrementing hl
-    inc de ; Move to next byte
-    dec bc ; Decrement count
-    ld a, b ; Check if count is 0, since `dec bc` doesn't update flags
+    inc de      ; Increment source address
+    dec bc      ; Decrement count
+    ld a, b     ; Check if count is 0
     or c
     jr nz, memcpy
     ret
 
+; Copy a NULL-terminated string to VRAM
 ; @param de - Source address
 ; @param hl - Destination address
 strcpy:
-    ld a, [de] ; Grab 1 byte from the source
-    ld [hli], a ; Place it at the destination, incrementing hl
-    inc de ; Move to next byte
-    and a ; Check if the byte we just copied is zero
-    jr nz, strcpy ; Continue if it's not
+    waitVRAM
+    ld a, [de]  ; Grab 1 byte from source address
+    ld [hli], a ; Write to memory & increment destination addr
+    inc de      ; Increment source addr
+    and a       ; Check if the byte we just copied is zero
+    jr nz, strcpy
     ret
 
+StopLCD:
+    ld a, [rLCDC]
+    rlca
+    ret nc ; In this case, the LCD is already off
 
-SECTION "Vblank", ROM0[$0040]
-    reti
-SECTION "LCDC", ROM0[$0048]
-    reti
-SECTION "Timer_Overflow", ROM0[$0050]
-    reti
-SECTION "Serial", ROM0[$0058]
-    reti
-SECTION "p1thru4", ROM0[$0060]
-    reti
+.wait:
+    ld a,[rLY]
+    cp 145
+    jr nz, .wait
+
+    ld  a, [rLCDC]
+    res 7, a
+    ld  [rLCDC], a
+
+    ret
+
+StartLCD:
+    ld a, LCDCF_ON|LCDCF_BGON
+    ld [rLCDC], a
+    ret
 
 SECTION "Font", ROM0
 
@@ -135,11 +124,8 @@ FontTilesEnd:
 
 SECTION "strings", ROM0
 
-StartingStr:
-    db "Starting...", 0
 NoButtonsStr:
-    db "No buttons!", 0
-LeftStr:
-    db "Left!", 0
-RightStr:
-    db "Right!", 0
+    db "No button is pressed", 0
+SomeButtonsStr:
+    db "Something is pressed", 0
+
