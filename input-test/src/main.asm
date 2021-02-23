@@ -44,47 +44,71 @@ Start:
     call StartLCD
 
 MainLoop:
+    call WaitVBlank
+    call handleRight
+    call handleLeft
+    call handleUp
+    call handleDown    
+    jr MainLoop
+
+handleRight:
+    ld hl, $99CC
     ld a, [rP1]
     and P1F_0
-    jr z, .rightButtonPressed
+    jr z, .pressed
+    ld de, ClearStr
+    call strcpy
+    ret
+.pressed:
+    ld de, RightButtonStr
+    call strcpy
+    ret
 
+handleLeft:
+    ld hl, $99AC
     ld a, [rP1]
     and P1F_1
-    jr z, .leftButtonPressed
+    jr z, .pressed
+    ld de, ClearStr
+    call strcpy
+    ret
+.pressed:
+    ld de, LeftButtonStr
+    call strcpy
+    ret
 
+handleUp:
+    ld hl, $996C
     ld a, [rP1]
     and P1F_2
-    jr z, .upButtonPressed
+    jr z, .pressed
+    ld de, ClearStr
+    call strcpy
+    ret
+.pressed:
+    ld de, UpButtonStr
+    call strcpy
+    ld a, [rSCY]
+    inc a
+    ld [rSCY], a
+    ret
 
+handleDown:
+    ld hl, $998C
     ld a, [rP1]
     and P1F_3
-    jr z, .downButtonPressed
-
-.noButtonPressed
-    ; No button is pressed
-    ld de, NoButtonsStr
-    jr .endMainLoop
-
-.leftButtonPressed:
-    ld de, LeftButtonStr
-    jr .endMainLoop
-
-.rightButtonPressed:
-    ld de, RightButtonStr
-    jr .endMainLoop
-
-.upButtonPressed:
-    ld de, UpButtonStr
-    jr .endMainLoop
-
-.downButtonPressed:
-    ld de, DownButtonStr
-    jr .endMainLoop
-
-.endMainLoop
-    ld hl, $9800
+    jr z, .pressed
+    ld de, ClearStr
     call strcpy
-    jr MainLoop
+    ret
+.pressed:
+    ld de, DownButtonStr
+    call strcpy
+    ld a, [rSCY]
+    dec a
+    ld [rSCY], a
+    ret
+
 
 wait:
     ld a, $FF
@@ -145,6 +169,12 @@ StartLCD:
     ld [rLCDC], a
     ret
 
+WaitVBlank
+    ld a, [rLY]
+    cp 144 ; Check if the LCD is past VBlank
+    jr c, WaitVBlank
+    ret
+
 SECTION "Font", ROM0
 
 FontTiles:
@@ -153,14 +183,14 @@ FontTilesEnd:
 
 SECTION "strings", ROM0
 
-NoButtonsStr:
-    db "No button is pressed", 0
 LeftButtonStr:
-    db "Left is pressed     ", 0
+    db "Left", 0
 RightButtonStr:
-    db "Right is pressed    ", 0
+    db "Right", 0
 UpButtonStr:
-    db "Up is pressed       ", 0
+    db "Up", 0
 DownButtonStr:
-    db "Down is pressed     ", 0
+    db "Down", 0
+ClearStr:
+    db "    ", 0
 
