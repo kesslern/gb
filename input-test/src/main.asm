@@ -10,11 +10,20 @@ REPT $150 - $104
 ENDR
 
 ; Wait for VRAM to be safe to write to
+; Busy wait - should change to use interrupt
 waitVRAM: MACRO
     ld  a,[rSTAT]
     and STATF_BUSY
     jr  nz,@-4
 ENDM
+
+; src -> dest
+strcpym: MACRO
+    ld de, \1
+    ld hl, \2
+    call strcpy
+ENDM
+
 
 SECTION "Game code", ROM0
 Start:
@@ -48,7 +57,7 @@ MainLoop:
     call handleRight
     call handleLeft
     call handleUp
-    call handleDown    
+    call handleDown
     jr MainLoop
 
 handleRight:
@@ -56,25 +65,20 @@ handleRight:
     ld a, [rP1]
     and P1F_0
     jr z, .pressed
-    ld de, ClearStr
-    call strcpy
+    strcpym ClearStr, $99CC
     ret
 .pressed:
-    ld de, RightButtonStr
-    call strcpy
+    strcpym RightButtonStr, $99CC
     ret
 
 handleLeft:
-    ld hl, $99AC
     ld a, [rP1]
     and P1F_1
     jr z, .pressed
-    ld de, ClearStr
-    call strcpy
+    strcpym ClearStr, $99AC
     ret
 .pressed:
-    ld de, LeftButtonStr
-    call strcpy
+    strcpym LeftButtonStr, $99AC
     ret
 
 handleUp:
@@ -83,32 +87,22 @@ handleUp:
     and P1F_2
     jr z, .pressed
     ld de, ClearStr
-    call strcpy
+    strcpym ClearStr, $996C
     ret
 .pressed:
-    ld de, UpButtonStr
-    call strcpy
-    ld a, [rSCY]
-    inc a
-    ld [rSCY], a
+    strcpym UpButtonStr, $996C
     ret
 
 handleDown:
-    ld hl, $998C
     ld a, [rP1]
     and P1F_3
     jr z, .pressed
     ld de, ClearStr
-    call strcpy
+    strcpym ClearStr, $998C
     ret
 .pressed:
-    ld de, DownButtonStr
-    call strcpy
-    ld a, [rSCY]
-    dec a
-    ld [rSCY], a
+    strcpym DownButtonStr, $998C
     ret
-
 
 wait:
     ld a, $FF
@@ -169,7 +163,7 @@ StartLCD:
     ld [rLCDC], a
     ret
 
-WaitVBlank
+WaitVBlank:
     ld a, [rLY]
     cp 144 ; Check if the LCD is past VBlank
     jr c, WaitVBlank
