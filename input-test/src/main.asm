@@ -18,12 +18,27 @@ waitVRAM: MACRO
 ENDM
 
 ; src -> dest
-strcpym: MACRO
+m_strcpy: MACRO
     ld de, \1
     ld hl, \2
     call strcpy
 ENDM
 
+; Display a string if an input mask matches the most recent
+; input read at $C000.
+; 1 - Input mask (or then nz compare)
+; 2 - String to display if or result is nz
+; 3 - Destination address to display the string
+m_displayInput: MACRO
+    ld a, [$C000]
+    and a, \1
+    jr z, .pressed\@
+    m_strcpy ClearStr, \3
+    jr .done\@
+.pressed\@:
+    m_strcpy \2, \3
+.done\@
+ENDM
 
 SECTION "Game code", ROM0
 Start:
@@ -47,76 +62,44 @@ Start:
     ; Shut sound down
     ld [rNR52], a
 
-    ld a, %00100000
-    ld [$FF00], a
-
     call StartLCD
+    ei
 
 MainLoop:
-    call WaitVBlank
-    call handleRight
-    call handleLeft
-    call handleUp
-    call handleDown
-    jr MainLoop
+    call readInput
+    m_displayInput %00000001, AButtonStr, $9880
+    m_displayInput %00000010, BButtonStr, $98A0
+    m_displayInput %00000100, StartButtonStr, $98C0
+    m_displayInput %00001000, SelectButtonStr, $98E0
+    m_displayInput %00010000, RightButtonStr, $9860
+    m_displayInput %00100000, LeftButtonStr, $9840
+    m_displayInput %01000000, UpButtonStr, $9800
+    m_displayInput %10000000, DownButtonStr, $9820
+    jp MainLoop
 
-handleRight:
-    ld hl, $99CC
+readInput:
+    ld a, %00100000  ; Select direction buttons
+    ld [rP1], a
+    rept 5           ; Read input 5x to stabilize
     ld a, [rP1]
-    and P1F_0
-    jr z, .pressed
-    strcpym ClearStr, $99CC
-    ret
-.pressed:
-    strcpym RightButtonStr, $99CC
-    ret
-
-handleLeft:
+    endr
+    and a, $0F       ; Clear upper 4 bits
+    rla              ; Move lower 4 bits over to the upper 4 bits
+    rla
+    rla
+    rla
+    ld b, a          ; Store upper 4 bits in register b
+    ld a, %00010000  ; Select actions buttons
+    ld [rP1], a
+    rept 5           ; Read input 5x to stabilize
     ld a, [rP1]
-    and P1F_1
-    jr z, .pressed
-    strcpym ClearStr, $99AC
-    ret
-.pressed:
-    strcpym LeftButtonStr, $99AC
+    endr
+    and a, $0F       ; Clear upper bits
+    or a, b          ; Combine with stored upper bits in register b
+    ld [$C000], a    ; Store input in $C000 work ram
     ret
 
-handleUp:
-    ld hl, $996C
-    ld a, [rP1]
-    and P1F_2
-    jr z, .pressed
-    ld de, ClearStr
-    strcpym ClearStr, $996C
-    ret
-.pressed:
-    strcpym UpButtonStr, $996C
-    ret
-
-handleDown:
-    ld a, [rP1]
-    and P1F_3
-    jr z, .pressed
-    ld de, ClearStr
-    strcpym ClearStr, $998C
-    ret
-.pressed:
-    strcpym DownButtonStr, $998C
-    ret
-
-wait:
-    ld a, $FF
-.start_loop:
-    ld b, a
-    ld a, $FF
-.loop:
-    dec a
-    jr nz, .loop
-    ld a, b
-    dec a
-    jr nz, .start_loop
-    ret
-
+; Copy a chunk of memory of known size.
 ; @param bc - Number of bytes to copy 
 ; @param de - Source address
 ; @param hl - Destination address
@@ -130,7 +113,7 @@ memcpy:
     jr nz, memcpy
     ret
 
-; Copy a NULL-terminated string to VRAM
+; Copy a 0-terminated string to VRAM
 ; @param de - Source addressppp
 ; @param hl - Destination address
 strcpy:
@@ -148,7 +131,7 @@ StopLCD:
     ret nc ; In this case, the LCD is already off
 
 .wait:
-    ld a,[rLY]
+    ld a, [rLY]
     cp 145
     jr nz, .wait
 
@@ -161,12 +144,6 @@ StopLCD:
 StartLCD:
     ld a, LCDCF_ON|LCDCF_BGON
     ld [rLCDC], a
-    ret
-
-WaitVBlank:
-    ld a, [rLY]
-    cp 144 ; Check if the LCD is past VBlank
-    jr c, WaitVBlank
     ret
 
 SECTION "Font", ROM0
@@ -185,6 +162,14 @@ UpButtonStr:
     db "Up", 0
 DownButtonStr:
     db "Down", 0
+StartButtonStr:
+    db "Start", 0
+SelectButtonStr:
+    db "Select", 0
+AButtonStr:
+    db "A", 0
+BButtonStr:
+    db "B", 0
 ClearStr:
-    db "    ", 0
+    db "      ", 0
 
