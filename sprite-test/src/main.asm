@@ -10,11 +10,10 @@ REPT $150 - $104
 ENDR
 
 ; Wait for VRAM to be safe to write to
-; Busy wait - should change to use interrupt
 waitVRAM: MACRO
-    ld  a,[rSTAT]
+    ld  a, [rSTAT]
     and STATF_BUSY
-    jr  nz,@-4
+    jr  nz, @-4
 ENDM
 
 ; src -> dest

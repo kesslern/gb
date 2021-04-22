@@ -1,9 +1,8 @@
-; Wait for VRAM to be safe to write to
-; Busy wait - should change to use interrupt
-waitVRAM: MACRO
-    ld  a,[rSTAT]
+; Wait for VBlank
+waitVBlank: MACRO
+    ld  a, [rSTAT]
     and STATF_BUSY
-    jr  nz,@-4
+    jr  nz, @-4
 ENDM
 
 ; src -> dest

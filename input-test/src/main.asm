@@ -37,6 +37,11 @@ start:
 
 MainLoop:
     call readInput
+    waitVBlank
+    call Draw
+    jp MainLoop
+
+Draw:
     m_displayInput 0, AButtonStr, $9880
     m_displayInput 1, BButtonStr, $98A0
     m_displayInput 2, StartButtonStr, $98C0
@@ -45,7 +50,7 @@ MainLoop:
     m_displayInput 5, LeftButtonStr, $9840
     m_displayInput 6, UpButtonStr, $9800
     m_displayInput 7, DownButtonStr, $9820
-    jp MainLoop
+    ret
 
 readInput:
     ld a, %00100000  ; Select direction buttons
@@ -87,7 +92,6 @@ memcpy:
 ; @param de - Source addressppp
 ; @param hl - Destination address
 strcpy:
-    waitVRAM
     ld a, [de]  ; Grab 1 byte from source address
     ld [hli], a ; Write to memory & increment destination addr
     inc de      ; Increment source addr
@@ -100,15 +104,10 @@ StopLCD:
     rlca
     ret nc ; In this case, the LCD is already off
 
-.wait:
-    ld a, [rLY]
-    cp 145
-    jr nz, .wait
-
-    ld  a, [rLCDC]
+    waitVBlank
+    ld  a, [rLCDC] ; Reset bit 7 of LCDC to turn LCD off
     res 7, a
     ld  [rLCDC], a
-
     ret
 
 StartLCD:
