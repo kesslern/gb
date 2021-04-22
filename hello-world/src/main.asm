@@ -1,27 +1,27 @@
 INCLUDE "hardware.inc"
 
 SECTION "Header", ROM0[$100]
-EntryPoint: ; This is where execution begins
-    di ; Disable interrupts. That way we can avoid dealing with them, especially since we didn't talk about them yet :p
-    jp Start ; Leave this tiny space
+EntryPoint:
+    di
+    jp start
 
+; Space reserved for header
 REPT $150 - $104
     db 0
 ENDR
 
 SECTION "Game code", ROM0
-Start:
-    ; Turn off the LCD
+start:
 .waitVBlank
     ld a, [rLY]
     cp 144 ; Check if the LCD is past VBlank
     jr c, .waitVBlank
 
-    xor a ; ld a, 0 ; We only need to reset a value with bit 7 reset, but 0 does the job
-    ld [rLCDC], a ; We will have to write to LCDC again later, so it's not a bother, really.
-
+    ; Turn off LCD
+    xor a
     ld [rLCDC], a
 
+    ; Load font data
     ld hl, $9000
     ld de, FontTiles
     ld bc, FontTilesEnd - FontTiles
@@ -34,19 +34,21 @@ Start:
     or c
     jr nz, .copyFont
 
-    ld hl, $9800 ; This will print the string at the top-left corner of the screen
+    ; Copy HelloWorldStr to $9800 (top left of screen)
+    ld hl, $9800
     ld de, HelloWorldStr
 .copyString
-    ld a, [de]
+    ld a, [de]         ; Copy [de] into [hl] and increment hl
     ld [hli], a
-    inc de
-    and a ; Check if the byte we just copied is zero
+    inc de             ; Next source byte
+    and a              ; Check if the byte we just copied is zero
     jr nz, .copyString ; Continue if it's not
 
-    ; Init display registers
+    ; Init display pallette
     ld a, %11100100
     ld [rBGP], a
 
+    ; Init scroll registers to 0
     xor a ; ld a, 0
     ld [rSCY], a
     ld [rSCX], a
@@ -54,13 +56,11 @@ Start:
     ; Shut sound down
     ld [rNR52], a
 
-    ; Turn screen on, display background
+    ; Turn screen on & display background
     ld a, %10000001
     ld [rLCDC], a
 
-; Lock up
-.lockup
-    jr .lockup
+    halt
 
 SECTION "Font", ROM0
 
