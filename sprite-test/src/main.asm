@@ -79,7 +79,36 @@ Start:
     set 0, a
     ld [$FFFF], a
 
+    ; Zero out memory to copy to OAM
+    ld hl, $C100
+    ld bc, $009F
+    call zero
+
+    ld hl, _HRAM
+    ld de, run_dma
+    ld bc, run_dma_end - run_dma
+    call memcpy
+
+    ld a, 16
+    ld [$C100], a
+    ld a, 8
+    ld [$C101], a
+    ld a, $16
+    ld [$C102], a
+
     ei
+    jp Loop
+
+run_dma:
+    ld a, $C100 / $100
+    ldh  [$FF46], a ;start DMA transfer (starts right after instruction)
+    ld  a ,$28      ;delay...
+.wait:           ;total 4x40 cycles, approx 160 μs
+    dec a          ;1 cycle
+    jr  nz, .wait    ;3 cycles
+    ret
+run_dma_end:
+
 
 Loop:
     call readInput
@@ -87,6 +116,7 @@ Loop:
     jp Loop
 
 Draw:
+    call $FF80
     m_displayInput %00000001, AButtonStr, $9880
     m_displayInput %00000010, BButtonStr, $98A0
     m_displayInput %00000100, StartButtonStr, $98C0
@@ -133,6 +163,18 @@ memcpy:
     jr nz, memcpy
     ret
 
+; Zero a chunk of memory.
+; @param bc - Number of bytes to zero
+; @param hl - Start address
+zero:
+    xor a, a
+    ld [hli], a ; Place it at the destination, incrementing hl
+    dec bc      ; Decrement count
+    ld a, b     ; Check if count is 0
+    or c
+    jr nz, zero
+    ret
+
 ; Copy a 0-terminated string to VRAM
 ; @param de - Source addressppp
 ; @param hl - Destination address
@@ -167,6 +209,7 @@ StartLCD:
     ld  a, [rLCDC]
     set 7, a
     ; res 4, a
+    set 1, a
     set 0, a
     ld  [rLCDC], a
     ret
