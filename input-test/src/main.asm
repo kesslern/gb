@@ -10,6 +10,10 @@ REPT $150 - $104
     db 0
 ENDR
 
+SECTION "vBlank", ROM0[$0040]
+    call Draw
+    reti
+
 SECTION "Game code", ROM0
 start:
     call StopLCD
@@ -32,13 +36,17 @@ start:
     ; Shut sound down
     ld [rNR52], a
 
+    ; Enable vblank interrupt
+    ld a, [rIE]
+    or a, IEF_VBLANK
+    ld [rIE], a
+
     call StartLCD
     ei
 
 MainLoop:
     call readInput
-    waitVBlank
-    call Draw
+    halt
     jp MainLoop
 
 Draw:
