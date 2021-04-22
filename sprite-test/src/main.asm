@@ -40,6 +40,10 @@ m_displayInput: MACRO
 .done\@
 ENDM
 
+SECTION "vBlank", ROM0[$0040]
+    call Draw
+    reti
+
 SECTION "Game code", ROM0
 Start:
     call StopLCD
@@ -69,10 +73,20 @@ Start:
     ld [rNR52], a
 
     call StartLCD
+
+    ; Enable vblank interrupt
+    ld a, [$FFFF]
+    set 0, a
+    ld [$FFFF], a
+
     ei
 
-MainLoop:
+Loop:
     call readInput
+    halt
+    jp Loop
+
+Draw:
     m_displayInput %00000001, AButtonStr, $9880
     m_displayInput %00000010, BButtonStr, $98A0
     m_displayInput %00000100, StartButtonStr, $98C0
@@ -81,7 +95,7 @@ MainLoop:
     m_displayInput %00100000, LeftButtonStr, $9840
     m_displayInput %01000000, UpButtonStr, $9800
     m_displayInput %10000000, DownButtonStr, $9820
-    jp MainLoop
+    ret
 
 readInput:
     ld a, %00100000  ; Select direction buttons
