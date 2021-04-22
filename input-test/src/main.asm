@@ -37,14 +37,14 @@ start:
 
 MainLoop:
     call readInput
-    m_displayInput %00000001, AButtonStr, $9880
-    m_displayInput %00000010, BButtonStr, $98A0
-    m_displayInput %00000100, StartButtonStr, $98C0
-    m_displayInput %00001000, SelectButtonStr, $98E0
-    m_displayInput %00010000, RightButtonStr, $9860
-    m_displayInput %00100000, LeftButtonStr, $9840
-    m_displayInput %01000000, UpButtonStr, $9800
-    m_displayInput %10000000, DownButtonStr, $9820
+    m_displayInput 0, AButtonStr, $9880
+    m_displayInput 1, BButtonStr, $98A0
+    m_displayInput 2, StartButtonStr, $98C0
+    m_displayInput 3, SelectButtonStr, $98E0
+    m_displayInput 4, RightButtonStr, $9860
+    m_displayInput 5, LeftButtonStr, $9840
+    m_displayInput 6, UpButtonStr, $9800
+    m_displayInput 7, DownButtonStr, $9820
     jp MainLoop
 
 readInput:

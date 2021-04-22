@@ -20,7 +20,7 @@ ENDM
 ; 3 - Destination address to display the string
 m_displayInput: MACRO
     ld a, [$C000]
-    and a, \1
+    bit \1, a
     jr z, .pressed\@
     m_strcpy ClearStr, \3
     jr .done\@
