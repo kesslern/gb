@@ -47,6 +47,8 @@ SECTION "Game code", ROM0
 Start:
     call StopLCD
 
+INCLUDE "dma.asm"
+
     ; Load font
     ld hl, _VRAM8000 + $0210
     ld de, FontTiles + $0210
@@ -79,11 +81,6 @@ Start:
     ld bc, $009F
     call zero
 
-    ld hl, _HRAM
-    ld de, run_dma
-    ld bc, run_dma_end - run_dma
-    call memcpy
-
     ld a, 16
     ld [$C100], a
     ld a, 8
@@ -93,16 +90,6 @@ Start:
 
     ei
     jp Loop
-
-run_dma:
-    ld a, $C100 / $100
-    ldh  [$FF46], a ;start DMA transfer (starts right after instruction)
-    ld  a ,$28      ;delay...
-.wait:           ;total 4x40 cycles, approx 160 μs
-    dec a          ;1 cycle
-    jr  nz, .wait    ;3 cycles
-    ret
-run_dma_end:
 
 Loop:
     call readInput
@@ -206,16 +193,6 @@ StartLCD:
     set 1, a
     set 0, a
     ld  [rLCDC], a
-    ret
-
-WaitVBlank:
-    ld   hl, rSTAT   ; LCD Status Register
-.wait1:           ;
-    bit  1, [hl]       ; Wait until Mode is -NOT- 0 or 1
-    jr   z, .wait1    ;
-.wait2:           ;
-    bit  1, [hl]       ; Wait until Mode 0 or 1 -BEGINS- (but we know that Mode 0 is what will begin)
-    jr   nz, .wait2   ;
     ret
 
 SECTION "Font", ROM0
