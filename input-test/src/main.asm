@@ -1,7 +1,7 @@
 INCLUDE "hardware.inc"
-INCLUDE "../src/macros.asm"
+INCLUDE "macros.asm"
 
-SECTION "Header", ROM0[$100]
+SECTION "Header", ROM0[$0100]
     di
     jp start
 
@@ -19,7 +19,7 @@ start:
     call StopLCD
 
     ; Load font
-    ld hl, $9000
+    ld hl, _VRAM9000
     ld de, FontTiles
     ld bc, FontTilesEnd - FontTiles
     call memcpy
@@ -79,7 +79,7 @@ readInput:
     endr
     and a, $0F       ; Clear upper bits
     or a, b          ; Combine with stored upper bits in register b
-    ld [$C000], a    ; Store input in $C000 work ram
+    ld [_RAM], a     ; Store input in $C000 work ram
     ret
 
 ; Copy a chunk of memory of known size.

@@ -8,10 +8,10 @@ PROJECT_NAME    ?=  input-test
 OUTPUT          :=  $(BUILD_DIR)/$(PROJECT_NAME)
 SRC_DIR         :=  src
 INC_DIR         :=  include/
-SRC_Z80         :=  $(call rwildcard, $(SRC_DIR)/, *.asm)
+SRC_Z80         :=  $(SRC_DIR)/main.asm
 OBJ_FILES       :=  $(addprefix $(BUILD_DIR)/obj/, $(SRC_Z80:src/%.asm=%.o))
 OBJ_DIRS        :=  $(addprefix $(BUILD_DIR)/obj/, $(dir $(SRC_Z80:src/%.asm=%.o)))
-ASM_FLAGS       :=  -i $(INC_DIR)
+ASM_FLAGS       :=  -i $(INC_DIR) -i $(SRC_DIR)
 
 .PHONY: all clean
 

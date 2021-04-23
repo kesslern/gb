@@ -1,11 +1,11 @@
 INCLUDE "hardware.inc"
 
-SECTION "Header", ROM0[$100]
+SECTION "Header", ROM0[$0100]
     di
     jp Start
 
 ; Space for header
-REPT $150 - $104
+REPT $0150 - $0104
     db 0
 ENDR
 
@@ -29,7 +29,7 @@ ENDM
 ; 2 - String to display if or result is nz
 ; 3 - Destination address to display the string
 m_displayInput: MACRO
-    ld a, [$C000]
+    ld a, [_RAM]
     and a, \1
     jr z, .pressed\@
     m_strcpy ClearStr, \3
@@ -48,20 +48,16 @@ Start:
     call StopLCD
 
     ; Load font
-    ld hl, $8210
+    ld hl, _VRAM8000 + $0210
     ld de, FontTiles + $0210
     ld bc, FontTilesEnd - FontTiles - $0210
-    call memcpy
-
-    ; Load font
-    ld hl, $9000
-    ld de, FontTiles
-    ld bc, FontTilesEnd - FontTiles
     call memcpy
 
     ; Init palette
     ld a, %11100100
     ld [rBGP], a
+    ld [rOBP0], a
+    ld [rOBP1], a
 
     ; Init scroll registers
     xor a
@@ -107,7 +103,6 @@ run_dma:
     jr  nz, .wait    ;3 cycles
     ret
 run_dma_end:
-
 
 Loop:
     call readInput
