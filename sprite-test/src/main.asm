@@ -1,4 +1,5 @@
 INCLUDE "hardware.inc"
+include "constants.inc"
 
 SECTION "Header", ROM0[$0100]
     di
@@ -29,7 +30,7 @@ ENDM
 ; 2 - String to display if or result is nz
 ; 3 - Destination address to display the string
 m_displayInput: MACRO
-    ld a, [_RAM]
+    ld a, [ramInput]
     and a, \1
     jr z, .pressed\@
     m_strcpy ClearStr, \3
@@ -58,6 +59,7 @@ INCLUDE "dma.asm"
     ; Init palette
     ld a, %11100100
     ld [rBGP], a
+    ld a, %11111100
     ld [rOBP0], a
     ld [rOBP1], a
 
@@ -72,21 +74,21 @@ INCLUDE "dma.asm"
     call StartLCD
 
     ; Enable vblank interrupt
-    ld a, [$FFFF]
+    ld a, [rIE]
     set 0, a
-    ld [$FFFF], a
+    ld [rIE], a
 
     ; Zero out memory to copy to OAM
-    ld hl, $C100
-    ld bc, $009F
+    ld hl, ramOAM
+    ld bc, $100
     call zero
 
     ld a, 16
-    ld [$C100], a
+    ld [ramTILE1_Y], a
     ld a, 8
-    ld [$C101], a
+    ld [ramTILE1_X], a
     ld a, $16
-    ld [$C102], a
+    ld [ramTILE1_TILE], a
 
     ei
     jp Loop
@@ -95,31 +97,47 @@ Loop:
     call readInput
 
 .left:
-    ld a, [_RAM]
+    ld a, [ramInput]
     bit 5, a
     jr nz, .right
-    ld hl, $C101
+
+    ld hl, ramTILE1_X
+    ld a, [hl]
+    cp a, PADDLE_X_MIN
+    jr z, .up
     dec [hl]
 
 .right:
-    ld a, [_RAM]
+    ld a, [ramInput]
     bit 4, a
     jr nz, .up
-    ld hl, $C101
+
+    ld hl, ramTILE1_X
+    ld a, PADDLE_X_MAX
+    cp a, [hl]
+    jr z, .up
     inc [hl]
 
 .up:
-    ld a, [_RAM]
+    ld a, [ramInput]
     bit 6, a
     jr nz, .down
-    ld hl, $C100
+
+    ld hl, ramTILE1_Y
+    ld a, [hl]
+    cp a, PADDLE_Y_MIN
+    jr z, .down
     dec [hl]
 
 .down:
-    ld a, [_RAM]
+    ld a, [ramInput]
     bit 7, a
     jr nz, .done
-    ld hl, $C100
+
+    ld hl, ramTILE1_Y
+    ld a, [hl]
+    cp a, PADDLE_Y_MAX
+    jr z, .done
     inc [hl]
 
 .done
@@ -157,7 +175,7 @@ readInput:
     endr
     and a, $0F       ; Clear upper bits
     or a, b          ; Combine with stored upper bits in register b
-    ld [$C000], a    ; Store input in $C000 work ram
+    ld [ramInput], a    ; Store input in $C000 work ram
     ret
 
 ; Copy a chunk of memory of known size.
@@ -215,14 +233,8 @@ StopLCD:
     ret
 
 StartLCD:
-    ; ld a, LCDCF_ON|LCDCF_BGON
-    ; ld [rLCDC], a
-    ld  a, [rLCDC]
-    set 7, a
-    ; res 4, a
-    set 1, a
-    set 0, a
-    ld  [rLCDC], a
+    ld a, LCDCF_ON|LCDCF_BGON|LCDCF_BG8000|LCDCF_OBJ8|LCDCF_OBJON
+    ld [rLCDC], a
     ret
 
 SECTION "Font", ROM0
