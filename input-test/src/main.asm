@@ -50,14 +50,14 @@ MainLoop:
     jp MainLoop
 
 Draw:
-    m_displayInput 0, AButtonStr, $9880
-    m_displayInput 1, BButtonStr, $98A0
-    m_displayInput 2, StartButtonStr, $98C0
-    m_displayInput 3, SelectButtonStr, $98E0
-    m_displayInput 4, RightButtonStr, $9860
-    m_displayInput 5, LeftButtonStr, $9840
-    m_displayInput 6, UpButtonStr, $9800
-    m_displayInput 7, DownButtonStr, $9820
+    m_displayInput 0, AButtonStr,      _SCRN0 + $20 * 4
+    m_displayInput 1, BButtonStr,      _SCRN0 + $20 * 5
+    m_displayInput 2, StartButtonStr,  _SCRN0 + $20 * 6
+    m_displayInput 3, SelectButtonStr, _SCRN0 + $20 * 7
+    m_displayInput 4, RightButtonStr,  _SCRN0 + $20 * 3
+    m_displayInput 5, LeftButtonStr,   _SCRN0 + $20 * 2
+    m_displayInput 6, UpButtonStr,     _SCRN0 + $20 * 0
+    m_displayInput 7, DownButtonStr,   _SCRN0 + $20 * 1
     ret
 
 readInput:
