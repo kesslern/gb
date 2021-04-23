@@ -93,6 +93,36 @@ INCLUDE "dma.asm"
 
 Loop:
     call readInput
+
+.left:
+    ld a, [_RAM]
+    bit 5, a
+    jr nz, .right
+    ld hl, $C101
+    dec [hl]
+
+.right:
+    ld a, [_RAM]
+    bit 4, a
+    jr nz, .up
+    ld hl, $C101
+    inc [hl]
+
+.up:
+    ld a, [_RAM]
+    bit 6, a
+    jr nz, .down
+    ld hl, $C100
+    dec [hl]
+
+.down:
+    ld a, [_RAM]
+    bit 7, a
+    jr nz, .done
+    ld hl, $C100
+    inc [hl]
+
+.done
     halt
     jp Loop
 
