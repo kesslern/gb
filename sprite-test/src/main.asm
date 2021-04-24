@@ -76,6 +76,18 @@ FOR N, PADDLE_TILE_WIDTH
     ld a, $5F
     ld [ramPADDLE_TILE + N * 4], a
 ENDR
+
+    ld a, 50
+    ld [ramBALL_X], a
+    ld a, 50
+    ld [ramBALL_Y], a
+    ld a, $6F
+    ld [ramBALL_TILE], a
+
+    ld a, 1
+    ld [ramBALL_X_DIR], a
+    ld [ramBALL_Y_DIR], a
+
     call StartLCD
 
      ei
@@ -83,6 +95,9 @@ ENDR
 
 Loop:
     call readInput
+    call moveBall
+    call checkBallBounds
+    call checkDeath
 
 .left:
     ld a, [ramInput]
@@ -157,4 +172,53 @@ readInput:
     and a, $0F       ; Clear upper bits
     or a, b          ; Combine with stored upper bits in register b
     ld [ramInput], a    ; Store input in $C000 work ram
+    ret
+
+moveBall:
+    ld hl, ramBALL_X
+    ld a, [ramBALL_X_DIR]
+    add a, [hl]
+    ld [hl], a
+    ld hl, ramBALL_Y
+    ld a, [ramBALL_Y_DIR]
+    add a, [hl]
+    ld [hl], a
+    ret
+
+checkBallBounds:
+    ld a, [ramBALL_X]
+    cp a, BALL_X_MIN
+    jr nz, .next1
+    ld a, 1
+    ld [ramBALL_X_DIR], a
+.next1
+    ld a, [ramBALL_X]
+    cp a, BALL_X_MAX
+    jr nz, .next2
+    ld a, -1
+    ld [ramBALL_X_DIR], a
+.next2
+    ld a, [ramBALL_Y]
+    cp a, BALL_Y_MIN
+    jr nz, .next3
+    ld a, 1
+    ld [ramBALL_Y_DIR], a
+.next3
+    ld a, [ramBALL_Y]
+    cp a, BALL_Y_MAX
+    jr nz, .next4
+    ld a, -1
+    ld [ramBALL_Y_DIR], a
+.next4
+    ret
+
+checkDeath:
+    ret
+    ld a, [ramBALL_Y]
+    cp a, BALL_Y_MAX
+    jr nz, .done
+    xor a, a
+    ld [ramBALL_X_DIR], a
+    ld [ramBALL_Y_DIR], a
+.done
     ret
