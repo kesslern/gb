@@ -204,6 +204,7 @@ checkBallBounds:
     ld a, 1
     ld [ramBALL_Y_DIR], a
 .next3
+    ; This can be removed when death is added
     ld a, [ramBALL_Y]
     cp a, BALL_Y_MAX
     jr nz, .next4
@@ -213,7 +214,7 @@ checkBallBounds:
     ret
 
 checkDeath:
-    ret
+    ret ; Temporary death removal
     ld a, [ramBALL_Y]
     cp a, BALL_Y_MAX
     jr nz, .done
