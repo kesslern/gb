@@ -1,9 +1,11 @@
+SECTION "DMA Code", ROM0
+init_dma:
     ; Copy DMA code into HRAM
     ld hl, _HRAM
     ld de, run_dma
     ld bc, dma_end - run_dma
     call memcpy
-    jp dma_end
+    ret
 
 run_dma:
     ld a, $C100 / $100

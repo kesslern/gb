@@ -1,28 +1,11 @@
 INCLUDE "hardware.inc"
-include "constants.inc"
+INCLUDE "constants.inc"
 
-SECTION "Header", ROM0[$0100]
-    di
-    jp Start
-
-; Space for header
-REPT $0150 - $0104
-    db 0
-ENDR
-
-; Wait for VRAM to be safe to write to
-waitVRAM: MACRO
-    ld  a, [rSTAT]
-    and STATF_BUSY
-    jr  nz, @-4
-ENDM
-
-; src -> dest
-m_strcpy: MACRO
-    ld de, \1
-    ld hl, \2
-    call strcpy
-ENDM
+INCLUDE "data.asm"
+INCLUDE "dma.asm"
+INCLUDE "header.asm"
+INCLUDE "lcd.asm"
+INCLUDE "memfns.asm"
 
 ; Display a string if an input mask matches the most recent
 ; input read at $C000.
@@ -40,15 +23,14 @@ m_displayInput: MACRO
 .done\@
 ENDM
 
-SECTION "vBlank", ROM0[$0040]
+SECTION "vBlank interrupt handler", ROM0[$0040]
     call Draw
     reti
 
 SECTION "Game code", ROM0
 Start:
     call StopLCD
-
-INCLUDE "dma.asm"
+    call init_dma
 
     ; Load font
     ld hl, _VRAM8000 + $0210
@@ -71,12 +53,15 @@ INCLUDE "dma.asm"
     ; Shut sound down
     ld [rNR52], a
 
-    call StartLCD
-
     ; Enable vblank interrupt
     ld a, [rIE]
     set 0, a
     ld [rIE], a
+
+    ; Zero out Nintendo logo VRAM space
+    ld hl, _VRAM8000
+    ld bc, $81A0 - _VRAM8000
+    call zero
 
     ; Zero out memory to copy to OAM
     ld hl, ramOAM
@@ -87,10 +72,12 @@ INCLUDE "dma.asm"
     ld [ramTILE1_Y], a
     ld a, 8
     ld [ramTILE1_X], a
-    ld a, $16
+    ld a, $5F
     ld [ramTILE1_TILE], a
 
-    ei
+    call StartLCD
+
+     ei
     jp Loop
 
 Loop:
@@ -177,90 +164,3 @@ readInput:
     or a, b          ; Combine with stored upper bits in register b
     ld [ramInput], a    ; Store input in $C000 work ram
     ret
-
-; Copy a chunk of memory of known size.
-; @param bc - Number of bytes to copy 
-; @param de - Source address
-; @param hl - Destination address
-memcpy:
-    ld a, [de]  ; Grab 1 byte from the source
-    ld [hli], a ; Place it at the destination, incrementing hl
-    inc de      ; Increment source address
-    dec bc      ; Decrement count
-    ld a, b     ; Check if count is 0
-    or c
-    jr nz, memcpy
-    ret
-
-; Zero a chunk of memory.
-; @param bc - Number of bytes to zero
-; @param hl - Start address
-zero:
-    xor a, a
-    ld [hli], a ; Place it at the destination, incrementing hl
-    dec bc      ; Decrement count
-    ld a, b     ; Check if count is 0
-    or c
-    jr nz, zero
-    ret
-
-; Copy a 0-terminated string to VRAM
-; @param de - Source addressppp
-; @param hl - Destination address
-strcpy:
-    waitVRAM
-    ld a, [de]  ; Grab 1 byte from source address
-    ld [hli], a ; Write to memory & increment destination addr
-    inc de      ; Increment source addr
-    and a       ; Check if the byte we just copied is zero
-    jr nz, strcpy
-    ret
-
-StopLCD:
-    ld a, [rLCDC]
-    rlca
-    ret nc ; In this case, the LCD is already off
-
-.wait:
-    ld a, [rLY]
-    cp 145
-    jr nz, .wait
-
-    ld  a, [rLCDC]
-    res 7, a
-    ld  [rLCDC], a
-
-    ret
-
-StartLCD:
-    ld a, LCDCF_ON|LCDCF_BGON|LCDCF_BG8000|LCDCF_OBJ8|LCDCF_OBJON
-    ld [rLCDC], a
-    ret
-
-SECTION "Font", ROM0
-
-FontTiles:
-INCBIN "font.chr"
-FontTilesEnd:
-
-SECTION "strings", ROM0
-
-LeftButtonStr:
-    db "Left", 0
-RightButtonStr:
-    db "Right", 0
-UpButtonStr:
-    db "Up", 0
-DownButtonStr:
-    db "Down", 0
-StartButtonStr:
-    db "Start", 0
-SelectButtonStr:
-    db "Select", 0
-AButtonStr:
-    db "A", 0
-BButtonStr:
-    db "B", 0
-ClearStr:
-    db "      ", 0
-
