@@ -67,14 +67,15 @@ Start:
     ld hl, ramOAM
     ld bc, $100
     call zero
-
-    ld a, 16
-    ld [ramTILE1_Y], a
-    ld a, 8
-    ld [ramTILE1_X], a
+    
+FOR N, PADDLE_TILE_WIDTH
+    ld a, PADDLE_Y
+    ld [ramPADDLE_Y + N * 4], a
+    ld a, 8 * (N+1)
+    ld [ramPADDLE_X + N * 4], a
     ld a, $5F
-    ld [ramTILE1_TILE], a
-
+    ld [ramPADDLE_TILE + N * 4], a
+ENDR
     call StartLCD
 
      ei
@@ -88,44 +89,37 @@ Loop:
     bit 5, a
     jr nz, .right
 
-    ld hl, ramTILE1_X
+    ld hl, ramPADDLE_X
     ld a, [hl]
     cp a, PADDLE_X_MIN
-    jr z, .up
+    jr z, .done
     dec [hl]
+    REPT 3
+    inc l
+    inc l
+    inc l
+    inc l
+    dec [hl]
+    ENDR
+
 
 .right:
     ld a, [ramInput]
     bit 4, a
-    jr nz, .up
-
-    ld hl, ramTILE1_X
-    ld a, PADDLE_X_MAX
-    cp a, [hl]
-    jr z, .up
-    inc [hl]
-
-.up:
-    ld a, [ramInput]
-    bit 6, a
-    jr nz, .down
-
-    ld hl, ramTILE1_Y
-    ld a, [hl]
-    cp a, PADDLE_Y_MIN
-    jr z, .down
-    dec [hl]
-
-.down:
-    ld a, [ramInput]
-    bit 7, a
     jr nz, .done
 
-    ld hl, ramTILE1_Y
-    ld a, [hl]
-    cp a, PADDLE_Y_MAX
+    ld hl, ramPADDLE_X
+    ld a, PADDLE_X_MAX
+    cp a, [hl]
     jr z, .done
     inc [hl]
+    REPT 3
+    inc l
+    inc l
+    inc l
+    inc l
+    inc [hl]
+    ENDR
 
 .done
     halt
