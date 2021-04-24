@@ -97,6 +97,7 @@ Loop:
     call readInput
     call moveBall
     call checkBallBounds
+    call checkPaddleCollision
     call checkDeath
 
 .left:
@@ -220,6 +221,26 @@ checkDeath:
     jr nz, .done
     xor a, a
     ld [ramBALL_X_DIR], a
+    ld [ramBALL_Y_DIR], a
+.done
+    ret
+
+checkPaddleCollision:
+    ld a, [ramBALL_Y]
+    cp a, PADDLE_Y+2
+    jr nz, .done
+
+    ld a, [ramPADDLE_X]
+    sub a, 5 ; compensate for sprite width
+    ld hl, ramBALL_X
+    cp a, [hl]
+    jr nc, .done
+
+    add a, 5 + PADDLE_TILE_WIDTH * 8 + 5
+    cp a, [hl]
+    jr c, .done
+
+    ld a, -1
     ld [ramBALL_Y_DIR], a
 .done
     ret
