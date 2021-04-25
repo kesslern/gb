@@ -7,22 +7,6 @@ INCLUDE "header.asm"
 INCLUDE "lcd.asm"
 INCLUDE "memfns.asm"
 
-; Display a string if an input mask matches the most recent
-; input read at $C000.
-; 1 - Input mask (or then nz compare)
-; 2 - String to display if or result is nz
-; 3 - Destination address to display the string
-m_displayInput: MACRO
-    ld a, [ramInput]
-    and a, \1
-    jr z, .pressed\@
-    m_strcpy ClearStr, \3
-    jr .done\@
-.pressed\@:
-    m_strcpy \2, \3
-.done\@
-ENDM
-
 SECTION "vBlank interrupt handler", ROM0[$0040]
     call Draw
     reti
@@ -32,16 +16,9 @@ Start:
     call StopLCD
     call init_dma
 
-    ; Load font
-    ld hl, _VRAM8000 + $0210
-    ld de, FontTiles + $0210
-    ld bc, FontTilesEnd - FontTiles - $0210
-    call memcpy
-
     ; Init palette
-    ld a, %11100100
+    ld a, %11011000
     ld [rBGP], a
-    ld a, %11111100
     ld [rOBP0], a
     ld [rOBP1], a
 
@@ -63,25 +40,46 @@ Start:
     ld bc, $81A0 - _VRAM8000
     call zero
 
+    ; Add gbtest tile test
+    ld hl, _VRAM8000 + 32
+    ld de, GBT_Tile
+    ld bc, 3 * 32
+    call memcpy
+
     ; Zero out memory to copy to OAM
     ld hl, ramOAM
     ld bc, $100
     call zero
     
-FOR N, PADDLE_TILE_WIDTH
     ld a, PADDLE_Y
-    ld [ramPADDLE_Y + N * 4], a
-    ld a, 8 * (N+1)
-    ld [ramPADDLE_X + N * 4], a
-    ld a, $5F
-    ld [ramPADDLE_TILE + N * 4], a
-ENDR
+    ld [ramPADDLE_Y + 0 * 4], a
+    ld [ramPADDLE_Y + 1 * 4], a
+    ld [ramPADDLE_Y + 2 * 4], a
+    ld [ramPADDLE_Y + 3 * 4], a
+
+    ld a, 8 * (0+1)
+    ld [ramPADDLE_X + 0 * 4], a
+    ld a, 8 * (1+1)
+    ld [ramPADDLE_X + 1 * 4], a
+    ld a, 8 * (2+1)
+    ld [ramPADDLE_X + 2 * 4], a
+    ld a, 8 * (3+1)
+    ld [ramPADDLE_X + 3 * 4], a
+    
+    ld a, $02
+    ld [ramPADDLE_TILE + 0 * 4], a
+    ld [ramPADDLE_TILE + 3 * 4], a
+    ld a, %00100000 ; flip X
+    ld [ramPADDLE_ATTR + 3 * 4], a
+    ld a, $03
+    ld [ramPADDLE_TILE + 1 * 4], a
+    ld [ramPADDLE_TILE + 2 * 4], a
 
     ld a, 50
     ld [ramBALL_X], a
     ld a, 50
     ld [ramBALL_Y], a
-    ld a, $6F
+    ld a, $04
     ld [ramBALL_TILE], a
 
     ld a, 1
@@ -143,14 +141,6 @@ Loop:
 
 Draw:
     call $FF80
-    m_displayInput %00000001, AButtonStr, $9880
-    m_displayInput %00000010, BButtonStr, $98A0
-    m_displayInput %00000100, StartButtonStr, $98C0
-    m_displayInput %00001000, SelectButtonStr, $98E0
-    m_displayInput %00010000, RightButtonStr, $9860
-    m_displayInput %00100000, LeftButtonStr, $9840
-    m_displayInput %01000000, UpButtonStr, $9800
-    m_displayInput %10000000, DownButtonStr, $9820
     ret
 
 readInput:
