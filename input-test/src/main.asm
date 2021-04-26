@@ -45,7 +45,7 @@ start:
     ei
 
 MainLoop:
-    call readInput
+    call ReadInput
     halt
     jp MainLoop
 
@@ -60,7 +60,7 @@ Draw:
     m_displayInput 7, DownButtonStr,   _SCRN0 + $20 * 1
     ret
 
-readInput:
+ReadInput:
     ld a, %00100000  ; Select direction buttons
     ld [rP1], a
     rept 5           ; Read input 5x to stabilize
