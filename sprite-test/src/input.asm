@@ -63,7 +63,7 @@ CheckDeath:
 
 CheckPaddleCollision:
     ld a, [ramBALL_Y]
-    cp a, PADDLE_Y+2
+    cp a, PADDLE_Y-4
     ret nz
 
     ld a, [ramPADDLE_X]
