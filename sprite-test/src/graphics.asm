@@ -1,22 +1,8 @@
 SECTION "LCD Code", ROM0
 
-StopLCD:
-    ld a, [rLCDC]
-    rlca
-    ret nc ; In this case, the LCD is already off
-
-.wait:
-    ld a, [rLY]
-    cp 145
-    jr nz, .wait
-
-    ld  a, [rLCDC]
-    res 7, a
-    ld  [rLCDC], a
-
-    ret
-
 InitLCD:
+    call stopLCD
+
     ; Init palette
     ld a, %11011000
     ld [rBGP], a
@@ -48,9 +34,29 @@ InitLCD:
     ld hl, ramOAM
     ld bc, $100
     call zero
+
+    call initDMA
+    call initSprites
+    call startLCD
+    ret
+    
+stopLCD:
+    ld a, [rLCDC]
+    rlca
+    ret nc ; In this case, the LCD is already off
+
+.wait:
+    ld a, [rLY]
+    cp 145
+    jr nz, .wait
+
+    ld  a, [rLCDC]
+    res 7, a
+    ld  [rLCDC], a
+
     ret
 
-InitSprites:
+initSprites:
     ld a, PADDLE_Y
     ld [ramPADDLE_Y + 0 * 4], a
     ld [ramPADDLE_Y + 1 * 4], a
@@ -87,27 +93,27 @@ InitSprites:
     ld [ramBALL_Y_DIR], a
     ret
 
-StartLCD:
+startLCD:
     ld a, LCDCF_ON|LCDCF_BGON|LCDCF_BG8000|LCDCF_OBJ8|LCDCF_OBJON
     ld [rLCDC], a
     ret
 
 SECTION "DMA Code", ROM0
-init_dma:
+initDMA:
     ; Copy DMA code into HRAM
     ld hl, _HRAM
-    ld de, run_dma
-    ld bc, dma_end - run_dma
+    ld de, runDMA
+    ld bc, dmaEnd - runDMA
     call memcpy
     ret
 
-run_dma:
-    ld a, $C100 / $100
-    ldh  [$FF46], a ;start DMA transfer (starts right after instruction)
-    ld  a ,$28      ;delay...
-.wait:           ;total 4x40 cycles, approx 160 μs
+runDMA:
+    ld a, ramOAM / $100
+    ldh  [rDMA], a ;start DMA transfer (starts right after instruction)
+    ld  a ,$28     ;delay...
+.wait:             ;total 4x40 cycles, approx 160 μs
     dec a          ;1 cycle
-    jr  nz, .wait    ;3 cycles
+    jr  nz, .wait  ;3 cycles
     ret
-dma_end:
+dmaEnd:
 

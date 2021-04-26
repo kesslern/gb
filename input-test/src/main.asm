@@ -16,7 +16,7 @@ SECTION "vBlank", ROM0[$0040]
 
 SECTION "Game code", ROM0
 start:
-    call StopLCD
+    call stopLCD
 
     ; Load font
     ld hl, _VRAM9000
@@ -41,7 +41,7 @@ start:
     or a, IEF_VBLANK
     ld [rIE], a
 
-    call StartLCD
+    call startLCD
     ei
 
 MainLoop:
@@ -107,7 +107,7 @@ strcpy:
     jr nz, strcpy
     ret
 
-StopLCD:
+stopLCD:
     ld a, [rLCDC]
     rlca
     ret nc ; In this case, the LCD is already off
@@ -118,7 +118,7 @@ StopLCD:
     ld  [rLCDC], a
     ret
 
-StartLCD:
+startLCD:
     ld a, LCDCF_ON|LCDCF_BGON
     ld [rLCDC], a
     ret

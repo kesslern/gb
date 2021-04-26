@@ -12,18 +12,10 @@ SECTION "vBlank interrupt handler", ROM0[$0040]
 
 SECTION "Game code", ROM0
 Start:
-    call StopLCD
-    call init_dma
-
-
-    
     call InitLCD
-    call InitSprites
 
     ; Shut sound down
     ld [rNR52], a
-
-    call StartLCD
 
     ei
     jp Loop
@@ -103,7 +95,7 @@ readInput:
     endr
     and a, $0F       ; Clear upper bits
     or a, b          ; Combine with stored upper bits in register b
-    ld [ramInput], a    ; Store input in $C000 work ram
+    ld [ramInput], a ; Store input in $C000 work ram
     ret
 
 moveBall:
