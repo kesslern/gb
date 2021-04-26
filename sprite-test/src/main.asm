@@ -2,9 +2,8 @@ INCLUDE "hardware.inc"
 INCLUDE "constants.inc"
 
 INCLUDE "data.asm"
-INCLUDE "dma.asm"
 INCLUDE "header.asm"
-INCLUDE "lcd.asm"
+INCLUDE "graphics.asm"
 INCLUDE "memfns.asm"
 
 SECTION "vBlank interrupt handler", ROM0[$0040]
@@ -16,79 +15,17 @@ Start:
     call StopLCD
     call init_dma
 
-    ; Init palette
-    ld a, %11011000
-    ld [rBGP], a
-    ld [rOBP0], a
-    ld [rOBP1], a
 
-    ; Init scroll registers
-    xor a
-    ld [rSCY], a
-    ld [rSCX], a
+    
+    call InitLCD
+    call InitSprites
 
     ; Shut sound down
     ld [rNR52], a
 
-    ; Enable vblank interrupt
-    ld a, [rIE]
-    set 0, a
-    ld [rIE], a
-
-    ; Zero out Nintendo logo VRAM space
-    ld hl, _VRAM8000
-    ld bc, $81A0 - _VRAM8000
-    call zero
-
-    ; Add gbtest tile test
-    ld hl, _VRAM8000 + 32
-    ld de, GBT_Tile
-    ld bc, 3 * 32
-    call memcpy
-
-    ; Zero out memory to copy to OAM
-    ld hl, ramOAM
-    ld bc, $100
-    call zero
-    
-    ld a, PADDLE_Y
-    ld [ramPADDLE_Y + 0 * 4], a
-    ld [ramPADDLE_Y + 1 * 4], a
-    ld [ramPADDLE_Y + 2 * 4], a
-    ld [ramPADDLE_Y + 3 * 4], a
-
-    ld a, 8 * (0+1)
-    ld [ramPADDLE_X + 0 * 4], a
-    ld a, 8 * (1+1)
-    ld [ramPADDLE_X + 1 * 4], a
-    ld a, 8 * (2+1)
-    ld [ramPADDLE_X + 2 * 4], a
-    ld a, 8 * (3+1)
-    ld [ramPADDLE_X + 3 * 4], a
-    
-    ld a, $02
-    ld [ramPADDLE_TILE + 0 * 4], a
-    ld [ramPADDLE_TILE + 3 * 4], a
-    ld a, %00100000 ; flip X
-    ld [ramPADDLE_ATTR + 3 * 4], a
-    ld a, $03
-    ld [ramPADDLE_TILE + 1 * 4], a
-    ld [ramPADDLE_TILE + 2 * 4], a
-
-    ld a, 50
-    ld [ramBALL_X], a
-    ld a, 50
-    ld [ramBALL_Y], a
-    ld a, $04
-    ld [ramBALL_TILE], a
-
-    ld a, 1
-    ld [ramBALL_X_DIR], a
-    ld [ramBALL_Y_DIR], a
-
     call StartLCD
 
-     ei
+    ei
     jp Loop
 
 Loop:
@@ -108,11 +45,13 @@ Loop:
     cp a, PADDLE_X_MIN
     jr z, .done
     dec [hl]
+    dec [hl]
     REPT 3
     inc l
     inc l
     inc l
     inc l
+    dec [hl]
     dec [hl]
     ENDR
 
@@ -127,11 +66,13 @@ Loop:
     cp a, [hl]
     jr z, .done
     inc [hl]
+    inc [hl]
     REPT 3
     inc l
     inc l
     inc l
     inc l
+    inc [hl]
     inc [hl]
     ENDR
 
@@ -140,7 +81,7 @@ Loop:
     jp Loop
 
 Draw:
-    call $FF80
+    call _HRAM
     ret
 
 readInput:
